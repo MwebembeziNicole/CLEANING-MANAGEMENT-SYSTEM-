@@ -16,8 +16,8 @@ CREATE TABLE USER (
 CREATE TABLE employee (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
     employeename VARCHAR(50) NOT NULL UNIQUE,
-    employee_contact INT 
-    employeeaddress VARCHAR(255) NOT NULL,
+    employee_contact INT ,
+    employee_address VARCHAR(255) NOT NULL,
     user_id INT UNIQUE NOT NULL,  
     job_title VARCHAR(100) NOT NULL,     
     hire_date DATE NOT NULL,
@@ -27,13 +27,35 @@ CREATE TABLE employee (
 
 CREATE TABLE Client (
     client_id INT PRIMARY KEY AUTO_INCREMENT,
-    user_id INT UNIQUE NOT NULL,  -- Ensures each client is also a user
+    FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE,-- Ensures each client is also a user
     address VARCHAR(255) NOT NULL,
-    client_contact VARCHAR(15) NOT NULL UNIQUE CHECK (phone_number REGEXP '^[0-9]+$'),
+    client_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(client_contact) >= 10),
     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE
-    feedback_id INT  NOT NULL,
-    FOREIGN KEY (feedback_id) REFERENCES Feedback(feedback_id)
+    user_id INT UNIQUE NOT NULL,  
+    FOREIGN KEY (user_id) REFERENCES user(user_id) ON UPDATE CASCADE ON DELETE CASCADE 
+    -- feedback_id INT  NOT NULL,
+    -- FOREIGN KEY (feedback_id) REFERENCES Feedback(feedback_id)
+);
+ALTER
+
+
+CREATE TABLE Cleaning_task (
+    task_id INT PRIMARY KEY AUTO_INCREMENT,
+    task_name VARCHAR(100) NOT NULL,
+    task_date DATE NOT NULL,
+    task_status ENUM('Pending', 'In Progress', 'Completed') NOT NULL,
+    client_id INT NOT NULL,
+    employee_id INT NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (employee_id) REFERENCES Employee(employee_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-CREATE 
+CREATE TABLE Feedback (
+    feedback_id INT PRIMARY KEY AUTO_INCREMENT,
+    feedback VARCHAR(255) NOT NULL,
+    feedback_date DATE NOT NULL,
+    client_id INT NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
+);     
+
+
