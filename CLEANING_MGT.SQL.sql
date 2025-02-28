@@ -16,14 +16,17 @@ CREATE TABLE USER (
 CREATE TABLE employee (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
     employeename VARCHAR(50) NOT NULL UNIQUE,
-    employee_contact INT ,
-    employee_address VARCHAR(255) NOT NULL,
-    user_id INT UNIQUE NOT NULL,  
+    employee_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(employee_contact) >= 10),
+    employee_address VARCHAR(255) NOT NULL, 
     job_title VARCHAR(100) NOT NULL,     
     hire_date DATE NOT NULL,
     salary DECIMAL(10,2) CHECK (salary > 0),
+    employee_specialization ENUM('Industrial', 'Residential') NOT NULL,
+    user_id INT UNIQUE NOT NULL, 
     FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE
 );
+
+DROP TABLE employee;
 
 CREATE TABLE Client (
     client_id INT PRIMARY KEY AUTO_INCREMENT,
@@ -36,7 +39,8 @@ CREATE TABLE Client (
     -- feedback_id INT  NOT NULL,
     -- FOREIGN KEY (feedback_id) REFERENCES Feedback(feedback_id)
 );
-ALTER
+ALTER TABLE Client ADD COLUMN feedback_id INT;
+ALTER TABLE Client ADD FOREIGN KEY (feedback_id) REFERENCES Feedback(feedback_id);
 
 
 CREATE TABLE Cleaning_task (
@@ -50,12 +54,47 @@ CREATE TABLE Cleaning_task (
     FOREIGN KEY (employee_id) REFERENCES Employee(employee_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
+DROP TABLE Cleaning_task;
+
 CREATE TABLE Feedback (
     feedback_id INT PRIMARY KEY AUTO_INCREMENT,
     feedback VARCHAR(255) NOT NULL,
     feedback_date DATE NOT NULL,
     client_id INT NOT NULL,
     FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
-);     
+); 
+
+CREATE TABLE Payments (
+    payment_id INT PRIMARY KEY AUTO_INCREMENT,
+    payment_date DATE NOT NULL,
+    amount DECIMAL(10,2) NOT NULL,
+    client_id INT NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+CREATE TABLE SCHEDULES(
+    schedule_id INT PRIMARY KEY AUTO_INCREMENT,
+    schedule_date DATE NOT NULL,
+    schedule_time TIME NOT NULL,
+    task_id INT NOT NULL,
+    FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    client_id INT NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    employee_id INT NOT NULL,
+    FOREIGN KEY (employee_id) REFERENCES Employee(employee_id) ON UPDATE CASCADE ON DELETE CASCADE
+
+);
+
+DROP TABLE SCHEDULES;   
+
+CREATE TABLE Invoice (
+    invoice_id INT PRIMARY KEY AUTO_INCREMENT,
+    invoice_date DATE NOT NULL,
+    amount INT NOT NULL,
+    client_id INT NOT NULL,
+    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
+
 
 
