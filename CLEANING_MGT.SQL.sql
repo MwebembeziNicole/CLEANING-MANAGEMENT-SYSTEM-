@@ -4,6 +4,13 @@ CREATE DATABASE CLEANING_SYSTEM;
 USE CLEANING_SYSTEM;
 
 
+CREATE TABLE User (
+    user_id INT PRIMARY KEY AUTO_INCREMENT,
+    username VARCHAR(50) NOT NULL UNIQUE,
+    email VARCHAR(100) NOT NULL UNIQUE CHECK (email LIKE '%@%'),
+    password VARCHAR(255) NOT NULL,
+    user_role ENUM('Admin', 'Employee', 'Client') NOT NULL
+);
 CREATE TABLE employee (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
     employeename VARCHAR(50) NOT NULL UNIQUE,
@@ -11,36 +18,27 @@ CREATE TABLE employee (
     employee_address VARCHAR(255) NOT NULL,     
     hire_date DATE NOT NULL,
     salary DECIMAL(10,2) CHECK (salary > 0),
-    employee_specialization ENUM('Industrial', 'Residential') NOT NULL,
+    employee_specialization ENUM('Industrial', 'Residential') NOT NULL
 
 );
 
+ALTER TABLE Employee ADD COLUMN user_id INT UNIQUE, 
+ADD CONSTRAINT fk_employee_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE;
 ALTER TABLE employee
 MODIFY COLUMN salary INT NOT NULL;
 ALTER TABLE employee DROP COLUMN job_title;
 ALTER TABLE employee ADD COLUMN employee_availability ENUM('Available', 'Not Available') NOT NULL;
 
-ALTER TABLE employee DROP COLUMN user_id;
 
-SELECT CONSTRAINT_NAME 
-FROM information_schema.KEY_COLUMN_USAGE 
-WHERE TABLE_NAME = 'employee' AND COLUMN_NAME = 'user_id';
-
-ALTER TABLE employee DROP FOREIGN KEY employee_ibfk_1;
-ALTER TABLE employee DROP FOREIGN KEY user_id;
-
-ALTER TABLE employee DROP COLUMN user_id;
-
-DROP TABLE employee;
 
 CREATE TABLE Client (
-    client_id INT PRIMARY KEY AUTO_INCREMENT,
-    FOREIGN KEY (user_id) REFERENCES user(user_id) ON DELETE CASCADE,-- Ensures each client is also a user
+    client_id INT PRIMARY KEY AUTO_INCREMENT,-- Ensures each client is also a user
     address VARCHAR(255) NOT NULL,
     client_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(client_contact) >= 10),
-    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-
+ALTER TABLE Client ADD COLUMN user_id INT UNIQUE, 
+ADD CONSTRAINT fk_client_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE;
 ALTER TABLE Client ADD COLUMN Client_name VARCHAR(50) NOT NULL;
 
 
@@ -68,8 +66,8 @@ CREATE TABLE Feedback (
 CREATE TABLE Payments (
     payment_id INT PRIMARY KEY AUTO_INCREMENT,
     payment_date DATE NOT NULL,
-    amount DECIMAL(10,2) NOT NULL,
-    FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
+    amount DECIMAL(10,2) NOT NULL
+
 );
 
 ALTER TABLE Payments
@@ -86,7 +84,7 @@ CREATE TABLE SCHEDULES(
     schedule_date DATE NOT NULL,
     schedule_time TIME NOT NULL,
     task_id INT NOT NULL,
-    FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON UPDATE CASCADE ON DELETE CASCADE,
+    FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
 CREATE TABLE Invoice (
@@ -100,6 +98,20 @@ ADD COLUMN task_id INT NOT NULL,
 ADD CONSTRAINT fk_invoice_task FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON DELETE CASCADE;
 
 
+INSERT INTO User (username, email, password, user_role) VALUES 
+('johndoe', 'johndoe@example.com', 'hashedpassword1', 'Employee'),
+('janesmith', 'janesmith@example.com', 'hashedpassword2', 'Employee'),
+('alicejohnson', 'alicejohnson@example.com', 'hashedpassword3', 'Employee'),
+('robertbrown', 'robertbrown@example.com', 'hashedpassword4', 'Employee'),
+('emilydavis', 'emilydavis@example.com', 'hashedpassword5', 'Employee');
+
+--Then, link the user_id to the corresponding employee:
+--Links employees to their user accounts.--
+UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'johndoe') WHERE employeename = 'John Doe';
+UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'janesmith') WHERE employeename = 'Jane Smith';
+UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'alicejohnson') WHERE employeename = 'Alice Johnson';
+UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'robertbrown') WHERE employeename = 'Robert Brown';
+UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'emilydavis') WHERE employeename = 'Emily Davis';
 
 INSERT INTO employee (employeename, employee_contact, employee_address, hire_date, salary, employee_specialization, employee_availability)
 VALUES 
@@ -107,7 +119,7 @@ VALUES
 ('Jane Smith', '0987654321', '456 Elm St', '2022-05-22', 5000.00, 'Residential', 'Not Available'),
 ('Alice Johnson', '1122334455', '789 Oak St', '2023-03-10', 4700.00, 'Industrial', 'Available'),
 ('Robert Brown', '6677889900', '159 Pine St', '2022-11-05', 5200.00, 'Residential', 'Available'),
-('Emily Davis', '5544332211', '753 Maple St', '2021-09-25', 4800.00, 'Industrial', 'Not Available');
+('Emily Davis', '5544332211', '753 Maple St', '2021-09-25', 4800.00, 'Industrial', 'Not Available');
 
 
 
@@ -119,6 +131,23 @@ VALUES
 ('David Black', '56 Hilltop Ave', '8473629150'),
 ('Emma Wilson', '78 Mountain St', '1203948576'),
 ('James Brown', '90 Beach Dr', '6758493021');
+
+--Insert Users Matching Clients
+INSERT INTO User (username, email, password, user_role) VALUES 
+('michaelgreen', 'michaelgreen@example.com', 'hashedpassword6', 'Client'),
+('sarahwhite', 'sarahwhite@example.com', 'hashedpassword7', 'Client'),
+('davidblack', 'davidblack@example.com', 'hashedpassword8', 'Client'),
+('emmawilson', 'emmawilson@example.com', 'hashedpassword9', 'Client'),
+('jamesbrown', 'jamesbrown@example.com', 'hashedpassword10', 'Client');
+
+--Now, we create user accounts for clients--
+--Then, link the user_id to the corresponding client--
+--Links clients to their user accounts--
+UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'michaelgreen') WHERE client_name = 'Michael Green';
+UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'sarahwhite') WHERE client_name = 'Sarah White';
+UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'davidblack') WHERE client_name = 'David Black';
+UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'emmawilson') WHERE client_name = 'Emma Wilson';
+UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'jamesbrown') WHERE client_name = 'James Brown';
 
 
 
@@ -154,6 +183,15 @@ VALUES
 ('Bank Transfer', '2024-03-14', 220.00, 4),
 ('Credit Card', '2024-03-15', 250.00, 5);
 
+
+
+----------------------SCHEDULES---------------------
+--Recurring Cleaning Services--
+--The database is missing a way to schedule recurring tasks for regular clients.--
+--Solution:Modify Schedules to include recurrence this allows automatic scheduling of regular cleaning services.--
+ALTER TABLE Schedules 
+ADD COLUMN recurrence ENUM('None', 'Weekly', 'Bi-Weekly', 'Monthly') DEFAULT 'None';
+
 INSERT INTO Schedules (schedule_date, schedule_time, task_id)
 VALUES 
 ('2024-03-16', '09:00:00', 1),
@@ -161,6 +199,8 @@ VALUES
 ('2024-03-18', '14:00:00', 3),
 ('2024-03-19', '16:00:00', 4),
 ('2024-03-20', '08:30:00', 5);
+
+----------------------VIEWS---------------------
 
 
 -- View: View_1Client_Tasks
@@ -207,6 +247,8 @@ SELECT p.payment_id, p.payment_method, p.payment_date, p.amount, i.invoice_id, i
 FROM Payments p
 JOIN Invoice i ON p.invoice_id = i.invoice_id;
 
+Select * FROM View_Payment_History;
+
 -- View: View_Schedule_Summary
 -- Description: Displays scheduled cleaning tasks, including client and employee details.
 CREATE VIEW View_Schedule_Summary AS
@@ -215,6 +257,8 @@ FROM Schedules s
 JOIN Cleaning_task ct ON s.task_id = ct.task_id
 JOIN Client c ON ct.client_id = c.client_id
 JOIN Employee e ON ct.employee_id = e.employee_id;
+
+Select * FROM View_Schedule_Summary;
 
 -- View: View_Employee_Specialization
 -- Description: Categorizes employees based on their specialization in 'Industrial' or 'Residential'.
@@ -225,3 +269,119 @@ SELECT
     employee_contact, 
     employee_specialization
 FROM Employee;
+
+Select * FROM View_Employee_Specialization;
+
+-- View: View_Client_Tasks
+-- Description: Shows all tasks assigned to clients.
+CREATE VIEW View_Client_Tasks AS
+SELECT c.client_id, c.client_name, ct.task_id, ct.task_name, ct.task_date, ct.task_status
+FROM Client c
+JOIN Cleaning_task ct ON c.client_id = ct.client_id;
+
+
+
+--------------JOINS---------------
+
+
+-- View: View_NaturalJoin_Employee_Tasks
+-- Join:Explicit INNER join to join Cleaning_task and employee using employee_id
+-- Description: Retrieves employees and their assigned tasks.
+
+CREATE VIEW View_NaturalJoin_Employee_Tasks AS
+SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
+FROM Employee e
+INNER JOIN Cleaning_task ct ON e.employee_id = ct.employee_id;
+SELECT * FROM View_NaturalJoin_Employee_Tasks;
+
+
+
+-- View: View_LeftJoin_Employee_Tasks
+-- Description: Lists all employees, including those without assigned tasks.
+
+CREATE VIEW View_LeftJoin_Employee_Tasks AS
+SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
+FROM Employee e
+LEFT JOIN Cleaning_task ct ON e.employee_id = ct.employee_id;
+
+-- View: View_RightJoin_Employee_Tasks
+-- Description: Lists all tasks, including those not assigned to an employee.
+CREATE VIEW View_RightJoin_Employee_Tasks AS
+SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
+FROM Employee e
+RIGHT JOIN Cleaning_task ct ON e.employee_id = ct.employee_id;
+
+-- View: View_FullJoin_Employee_Tasks
+-- Description: Lists all employees and all tasks, ensuring no missing data.
+CREATE VIEW View_FullJoin_Employee_Tasks AS
+SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
+FROM Employee e
+LEFT JOIN Cleaning_task ct ON e.employee_id = ct.employee_id
+UNION
+SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
+FROM Employee e
+RIGHT JOIN Cleaning_task ct ON e.employee_id = ct.employee_id;
+
+Select * FROM View_FullJoin_Employee_Tasks;
+
+
+------QN.5-------
+--1.Using case in select statements.--
+--Example 1:Categorizing employees based on salary--
+SELECT 
+    employee_id, 
+    employeename, 
+    salary,
+    CASE 
+        WHEN salary > 5000 THEN 'High'
+        WHEN salary BETWEEN 4000 AND 5000 THEN 'Medium'
+        ELSE 'Low'
+    END AS salary_category
+FROM employee;
+--Example2:Showing task completion status.--
+SELECT 
+    task_id, 
+    task_name, 
+    task_status,
+    CASE 
+        WHEN task_status = 'Completed' THEN '✔ Done'
+        WHEN task_status = 'Pending' THEN '❌ Pending'
+        ELSE '🕒 In Progress'
+    END AS status_display
+FROM Cleaning_task;
+
+--2.Using case in UPDATE statements.--
+--Example 1: Updating Employee Availability Based on Salary--
+UPDATE Employee
+SET employee_availability = 
+    CASE 
+        WHEN salary >= 5000 THEN 'Available'
+        ELSE 'Not Available'
+    END;
+
+--Example 2: Marking Overdue Tasks as "Pending"--
+UPDATE Cleaning_task
+SET task_status = 
+    CASE 
+        WHEN task_date < CURDATE() THEN 'Pending'
+        ELSE task_status
+    END;
+
+-- Using CASE in DELETE Statements--
+--Example 1: Delete Employees with a Salary Below 4000--
+DELETE FROM Employee
+WHERE 
+    CASE 
+        WHEN salary < 4000 THEN TRUE
+        ELSE FALSE
+    END;
+
+-- Example 2: Remove Clients Who Haven’t Registered for Over 2 Years--
+DELETE FROM Client
+WHERE 
+    CASE 
+        WHEN registered_at < DATE_SUB(CURDATE(), INTERVAL 2 YEAR) THEN TRUE
+        ELSE FALSE
+    END;
+
+
