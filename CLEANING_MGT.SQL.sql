@@ -11,6 +11,17 @@ CREATE TABLE User (
     password VARCHAR(255) NOT NULL,
     user_role ENUM('Admin', 'Employee', 'Client') NOT NULL
 );
+
+SELECT CONSTRAINT_NAME 
+FROM information_schema.KEY_COLUMN_USAGE 
+WHERE TABLE_NAME = 'client' AND COLUMN_NAME = 'user_id';
+
+
+ALTER TABLE client DROP FOREIGN KEY fk_client_user;
+
+ALTER TABLE client DROP COLUMN user_id;
+
+
 CREATE TABLE employee (
     employee_id INT PRIMARY KEY AUTO_INCREMENT,
     employeename VARCHAR(50) NOT NULL UNIQUE,
@@ -23,7 +34,7 @@ CREATE TABLE employee (
 );
 
 ALTER TABLE Employee ADD COLUMN user_id INT UNIQUE, 
-ADD CONSTRAINT fk_employee_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE;
+ADD CONSTRAINT fk_employee_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE employee
 MODIFY COLUMN salary INT NOT NULL;
 ALTER TABLE employee DROP COLUMN job_title;
@@ -37,9 +48,11 @@ CREATE TABLE Client (
     client_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(client_contact) >= 10),
     registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
-ALTER TABLE Client ADD COLUMN user_id INT UNIQUE, 
-ADD CONSTRAINT fk_client_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON DELETE CASCADE;
+
+ALTER TABLE Client ADD COLUMN user_id INT UNIQUE,
+ADD CONSTRAINT fk_client_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE Client ADD COLUMN Client_name VARCHAR(50) NOT NULL;
+
 
 
 CREATE TABLE Cleaning_task (
@@ -99,19 +112,24 @@ ADD CONSTRAINT fk_invoice_task FOREIGN KEY (task_id) REFERENCES Cleaning_task(ta
 
 
 INSERT INTO User (username, email, password, user_role) VALUES 
-('johndoe', 'johndoe@example.com', 'hashedpassword1', 'Employee'),
-('janesmith', 'janesmith@example.com', 'hashedpassword2', 'Employee'),
-('alicejohnson', 'alicejohnson@example.com', 'hashedpassword3', 'Employee'),
-('robertbrown', 'robertbrown@example.com', 'hashedpassword4', 'Employee'),
-('emilydavis', 'emilydavis@example.com', 'hashedpassword5', 'Employee');
+('John Doe', 'johndoe@example.com', 'hashedpassword1', 'Employee'),
+('Jane Smith', 'janesmith@example.com', 'hashedpassword2', 'Employee'),
+('Alice Johnson', 'alicejohnson@example.com', 'hashedpassword3', 'Employee'),
+('Robert Brown', 'robertbrown@example.com', 'hashedpassword4', 'Employee'),
+('Emily Davis', 'emilydavis@example.com', 'hashedpassword5', 'Employee');
 
---Then, link the user_id to the corresponding employee:
---Links employees to their user accounts.--
-UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'johndoe') WHERE employeename = 'John Doe';
-UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'janesmith') WHERE employeename = 'Jane Smith';
-UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'alicejohnson') WHERE employeename = 'Alice Johnson';
-UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'robertbrown') WHERE employeename = 'Robert Brown';
-UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'emilydavis') WHERE employeename = 'Emily Davis';
+DELETE FROM User WHERE username IN ('johndoe', 'janesmith', 'alicejohnson', 'robertbrown', 'emilydavis');
+
+
+
+
+--This links the user_id to the corresponding employee:
+--UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'johndoe') WHERE employeename = 'John Doe';
+UPDATE employee e
+JOIN User u ON e.employeename = u.username
+SET e.user_id = u.user_id;
+
+
 
 INSERT INTO employee (employeename, employee_contact, employee_address, hire_date, salary, employee_specialization, employee_availability)
 VALUES 
@@ -120,6 +138,13 @@ VALUES
 ('Alice Johnson', '1122334455', '789 Oak St', '2023-03-10', 4700.00, 'Industrial', 'Available'),
 ('Robert Brown', '6677889900', '159 Pine St', '2022-11-05', 5200.00, 'Residential', 'Available'),
 ('Emily Davis', '5544332211', '753 Maple St', '2021-09-25', 4800.00, 'Industrial', 'Not Available');
+
+DELETE FROM employee WHERE employeename IN ('John Doe', 'Jane Smith', 'Alice Johnson', 'Robert Brown', 'Emily Davis');
+SELECT * FROM User WHERE user_role = 'Employee';
+
+SELECT employeename, user_id FROM employee;
+INSERT INTO employee (employeename, employee_contact, employee_address, hire_date, salary, employee_specialization, employee_availability)
+VALUES ('Karungi Grace', '0787433234', 'lo street', '2022-02-20', 3800.00,'Residential','Available');
 
 
 
@@ -132,22 +157,38 @@ VALUES
 ('Emma Wilson', '78 Mountain St', '1203948576'),
 ('James Brown', '90 Beach Dr', '6758493021');
 
+DELETE FROM Client WHERE client_name IN ('Michael Green', 'Sarah White', 'David Black', 'Emma Wilson', 'James Brown');
+
+SELECT client_name, user_id FROM Client;
+INSERT INTO Client (client_name, address, client_contact)
+VALUES 
+('Mbabazi Nate', '55 Saint', '0798344566');
+INSERT INTO Client (client_name, address, client_contact)
+VALUES 
+('Nakato Sera', '90 Bishop Tuker', '0791230000');
+
+
 --Insert Users Matching Clients
 INSERT INTO User (username, email, password, user_role) VALUES 
-('michaelgreen', 'michaelgreen@example.com', 'hashedpassword6', 'Client'),
-('sarahwhite', 'sarahwhite@example.com', 'hashedpassword7', 'Client'),
-('davidblack', 'davidblack@example.com', 'hashedpassword8', 'Client'),
-('emmawilson', 'emmawilson@example.com', 'hashedpassword9', 'Client'),
-('jamesbrown', 'jamesbrown@example.com', 'hashedpassword10', 'Client');
+('Michael Green', 'michaelgreen@example.com', 'hashedpassword6', 'Client'),
+('Sarah White', 'sarahwhite@example.com', 'hashedpassword7', 'Client'),
+('David Black', 'davidblack@example.com', 'hashedpassword8', 'Client'),
+('Emma Wilson', 'emmawilson@example.com', 'hashedpassword9', 'Client'),
+('James Brown', 'jamesbrown@example.com', 'hashedpassword10', 'Client');
 
---Now, we create user accounts for clients--
---Then, link the user_id to the corresponding client--
---Links clients to their user accounts--
-UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'michaelgreen') WHERE client_name = 'Michael Green';
-UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'sarahwhite') WHERE client_name = 'Sarah White';
-UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'davidblack') WHERE client_name = 'David Black';
-UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'emmawilson') WHERE client_name = 'Emma Wilson';
-UPDATE Client SET user_id = (SELECT user_id FROM User WHERE username = 'jamesbrown') WHERE client_name = 'James Brown';
+DELETE FROM User WHERE username IN ('Michael Green', 'Sarah White', 'David Black', 'Emma Wilson', 'James Brown');
+
+SELECT * FROM User WHERE user_role = 'Client';
+SELECT client_name, user_id FROM Client;
+
+
+
+--we are linking the user_id to the corresponding client--
+--Usering a JOIN statement to update the user_id:
+UPDATE Client c
+JOIN User u ON c.Client_name = u.username
+SET c.user_id = u.user_id;
+
 
 
 
@@ -199,6 +240,35 @@ VALUES
 ('2024-03-18', '14:00:00', 3),
 ('2024-03-19', '16:00:00', 4),
 ('2024-03-20', '08:30:00', 5);
+
+
+
+----DDL AND DML ---------
+
+INSERT INTO User (username, email, password, user_role) VALUES 
+('Karungi Grace', 'karungigrace4@gmail.com', 'hashedpassword1', 'Employee'),
+('Nakato Sarah', 'nakatosarah6@gmail.com', 'hashedpassword2', 'Employee');
+
+
+INSERT INTO User(username, email, password, user_role)
+VALUES ('Nakato Sera', 'nakatosera6@gmail.com', 'hashedpassword2', 'Client');
+
+INSERT INTO User(username, email, password, user_role)
+VALUES ('Mbabazi Nate', 'mabazinate6@gmail.com', 'hashedpassword4', 'Client');
+
+
+DELETE FROM User WHERE user_id = 
+(SELECT user_id FROM Client WHERE client_name = 'Nakato Sera');
+
+UPDATE Client SET client_contact = '0772406216' WHERE client_name = 'Michael Green';
+UPDATE Client SET client_contact = '0734522134' WHERE client_name = 'Sarah White';
+UPDATE Client SET client_contact = '0756789012' WHERE client_name = 'David Black';
+UPDATE Client SET client_contact = '0767890123' WHERE client_name = 'Emma Wilson';
+UPDATE Client SET client_contact = '0778901234' WHERE client_name = 'James Brown';
+
+
+UPDATE employee employee_contact = '0784163037' WHERE employeename = ''
+
 
 ----------------------VIEWS---------------------
 
@@ -383,5 +453,4 @@ WHERE
         WHEN registered_at < DATE_SUB(CURDATE(), INTERVAL 2 YEAR) THEN TRUE
         ELSE FALSE
     END;
-
 
