@@ -18,8 +18,10 @@ WHERE TABLE_NAME = 'client' AND COLUMN_NAME = 'user_id';
 
 
 ALTER TABLE client DROP FOREIGN KEY fk_client_user;
+SHOW CREATE TABLE client;
 
-ALTER TABLE client DROP COLUMN user_id;
+
+ALTER TABLE Client DROP COLUMN user_id;
 
 
 CREATE TABLE employee (
@@ -28,7 +30,7 @@ CREATE TABLE employee (
     employee_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(employee_contact) >= 10),
     employee_address VARCHAR(255) NOT NULL,     
     hire_date DATE NOT NULL,
-    salary DECIMAL(10,2) CHECK (salary > 0),
+    salary INT CHECK (salary > 0),
     employee_specialization ENUM('Industrial', 'Residential') NOT NULL
 
 );
@@ -36,22 +38,25 @@ CREATE TABLE employee (
 ALTER TABLE Employee ADD COLUMN user_id INT UNIQUE, 
 ADD CONSTRAINT fk_employee_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
 ALTER TABLE employee
-MODIFY COLUMN salary INT NOT NULL;
-ALTER TABLE employee DROP COLUMN job_title;
+
+
 ALTER TABLE employee ADD COLUMN employee_availability ENUM('Available', 'Not Available') NOT NULL;
 
 
 
 CREATE TABLE Client (
-    client_id INT PRIMARY KEY AUTO_INCREMENT,-- Ensures each client is also a user
+    client_id INT PRIMARY KEY AUTO_INCREMENT,
+    Client_name VARCHAR(50) NOT NULL,     
     address VARCHAR(255) NOT NULL,
     client_contact VARCHAR(15) NOT NULL UNIQUE CHECK (LENGTH(client_contact) >= 10),
-    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+    registered_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    user_id INT UNIQUE,
+    CONSTRAINT fk_client_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-ALTER TABLE Client ADD COLUMN user_id INT UNIQUE,
-ADD CONSTRAINT fk_client_user FOREIGN KEY (user_id) REFERENCES User(user_id) ON UPDATE CASCADE ON DELETE CASCADE;
-ALTER TABLE Client ADD COLUMN Client_name VARCHAR(50) NOT NULL;
+
+DROP TABLE Client;
+
 
 
 
@@ -75,16 +80,30 @@ CREATE TABLE Feedback (
     client_id INT NOT NULL,
     FOREIGN KEY (client_id) REFERENCES Client(client_id) ON UPDATE CASCADE ON DELETE CASCADE
 ); 
+SELECT CONSTRAINT_NAME 
+FROM information_schema.KEY_COLUMN_USAGE 
+WHERE TABLE_NAME = 'Feedback' AND COLUMN_NAME = 'client_id';
+
+ALTER TABLE Feedback DROP FOREIGN KEY feedback_ibfk_1;
+
+
+
+ALTER TABLE Feedback DROP COLUMN client_id;
+
 
 CREATE TABLE Payments (
     payment_id INT PRIMARY KEY AUTO_INCREMENT,
     payment_date DATE NOT NULL,
-    amount DECIMAL(10,2) NOT NULL
-
+    amount DECIMAL(10,1) NOT NULL,
+    payment_method ENUM('Cash','Credit Card','Momopay','Bank Transfer') NOT NULL,
+    invoice_id INT NOT NULL,
+    CONSTRAINT fk_payment_invoice FOREIGN KEY (invoice_id) REFERENCES Invoice(invoice_id) ON UPDATE CASCADE ON DELETE CASCADE
 );
 
-ALTER TABLE Payments
-MODIFY COLUMN amount INT;
+
+
+
+
 ALTER TABLE Payments ADD COLUMN payment_method ENUM('Cash','Credit Card','Momopay','Bank Transfer') NOT NULL;
 -- Foreign key invoice id
 ALTER TABLE Payments
@@ -103,13 +122,10 @@ CREATE TABLE SCHEDULES(
 CREATE TABLE Invoice (
     invoice_id INT PRIMARY KEY AUTO_INCREMENT,
     invoice_date DATE NOT NULL,
-    amount INT NOT NULL
+    amount INT NOT NULL,
+    task_id INT NOT NULL,
+    CONSTRAINT fk_invoice_task FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON UPDATE CASCADE ON DELETE CASCADE   
 );
-
-ALTER TABLE Invoice 
-ADD COLUMN task_id INT NOT NULL, 
-ADD CONSTRAINT fk_invoice_task FOREIGN KEY (task_id) REFERENCES Cleaning_task(task_id) ON DELETE CASCADE;
-
 
 INSERT INTO User (username, email, password, user_role) VALUES 
 ('John Doe', 'johndoe@example.com', 'hashedpassword1', 'Employee'),
@@ -118,16 +134,14 @@ INSERT INTO User (username, email, password, user_role) VALUES
 ('Robert Brown', 'robertbrown@example.com', 'hashedpassword4', 'Employee'),
 ('Emily Davis', 'emilydavis@example.com', 'hashedpassword5', 'Employee');
 
-DELETE FROM User WHERE username IN ('johndoe', 'janesmith', 'alicejohnson', 'robertbrown', 'emilydavis');
 
-
-
-
---This links the user_id to the corresponding employee:
---UPDATE Employee SET user_id = (SELECT user_id FROM User WHERE username = 'johndoe') WHERE employeename = 'John Doe';
+--This links the user_id to the corresponding employee--
 UPDATE employee e
 JOIN User u ON e.employeename = u.username
 SET e.user_id = u.user_id;
+
+
+
 
 
 
@@ -146,7 +160,8 @@ SELECT employeename, user_id FROM employee;
 INSERT INTO employee (employeename, employee_contact, employee_address, hire_date, salary, employee_specialization, employee_availability)
 VALUES ('Karungi Grace', '0787433234', 'lo street', '2022-02-20', 3800.00,'Residential','Available');
 
-
+INSERT INTO employee (employeename, employee_contact, employee_address, hire_date, salary, employee_specialization, employee_availability)
+VALUES ('Nakato Sarah', '0787433098', 'Mews street', '2022-08-20', 47980.00,'Industrial','Available');
 
 
 INSERT INTO Client (client_name, address, client_contact)
@@ -175,12 +190,12 @@ INSERT INTO User (username, email, password, user_role) VALUES
 ('David Black', 'davidblack@example.com', 'hashedpassword8', 'Client'),
 ('Emma Wilson', 'emmawilson@example.com', 'hashedpassword9', 'Client'),
 ('James Brown', 'jamesbrown@example.com', 'hashedpassword10', 'Client');
-
+USE CLEANING_SYSTEM;
 DELETE FROM User WHERE username IN ('Michael Green', 'Sarah White', 'David Black', 'Emma Wilson', 'James Brown');
+
 
 SELECT * FROM User WHERE user_role = 'Client';
 SELECT client_name, user_id FROM Client;
-
 
 
 --we are linking the user_id to the corresponding client--
@@ -267,7 +282,13 @@ UPDATE Client SET client_contact = '0767890123' WHERE client_name = 'Emma Wilson
 UPDATE Client SET client_contact = '0778901234' WHERE client_name = 'James Brown';
 
 
-UPDATE employee employee_contact = '0784163037' WHERE employeename = ''
+UPDATE employee SET employee_contact = '0784163038' WHERE employeename = 'John Doe';
+UPDATE employee SET employee_contact = '0785533221' WHERE employeename = 'Jane Smith';
+UPDATE employee SET employee_contact = '0743508911' WHERE employeename = 'Alice Johnson';
+UPDATE employee SET employee_contact = '0711019234' WHERE employeename = 'Robert Brown';
+
+
+
 
 
 ----------------------VIEWS---------------------
@@ -275,10 +296,13 @@ UPDATE employee employee_contact = '0784163037' WHERE employeename = ''
 
 -- View: View_1Client_Tasks
 -- Description: Displays all tasks assigned to clients, including task name, date, and status.
-CREATE VIEW View_1Client_Tasks AS
+CREATE VIEW View1_Client_Tasks AS
 SELECT c.client_id, c.client_name, ct.task_id, ct.task_name, ct.task_date, ct.task_status
 FROM Client c
 JOIN Cleaning_task ct ON c.client_id = ct.client_id;
+
+
+USE CLEANING_SYSTEM;
 
 
 -- View: View_Employee_Assigned_Tasks
@@ -381,6 +405,8 @@ SELECT e.employee_id, e.employeename, ct.task_id, ct.task_name, ct.task_status
 FROM Employee e
 RIGHT JOIN Cleaning_task ct ON e.employee_id = ct.employee_id;
 
+
+USE CLEANING_SYSTEM;
 -- View: View_FullJoin_Employee_Tasks
 -- Description: Lists all employees and all tasks, ensuring no missing data.
 CREATE VIEW View_FullJoin_Employee_Tasks AS
